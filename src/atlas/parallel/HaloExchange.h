@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include "atlas/parallel/HaloAdjointExchangeImpl.h"
 #include "atlas/parallel/HaloExchangeImpl.h"
@@ -31,6 +32,7 @@
 #include "atlas/library/config.h"
 #include "atlas/library/defines.h"
 #include "atlas/runtime/Exception.h"
+#include "atlas/runtime/Log.h"
 #include "atlas/util/Object.h"
 
 #if ATLAS_HAVE_CUDA
@@ -169,6 +171,11 @@ void HaloExchange::execute(array::Array& field, bool on_device) const {
     std::vector<int> inner_displs(nproc_loc), halo_displs(nproc_loc);
     std::vector<eckit::mpi::Request> inner_req(nproc_loc), halo_req(nproc_loc);
 
+    std::stringstream dbg;
+    dbg << "atlas::parallel::HaloExchange::execute before: sendcnt_ \n"
+        << sendcnt_ << " recvcnt_ " << recvcnt_ << " var_size " << var_size
+        << std::endl;
+    ATLAS_DEBUG(dbg.str());
     int inner_size          = sendcnt_ * var_size;
     int halo_size           = recvcnt_ * var_size;
     DATA_TYPE* inner_buffer = allocate_buffer<DATA_TYPE>(inner_size, on_device);
@@ -189,6 +196,31 @@ void HaloExchange::execute(array::Array& field, bool on_device) const {
     unpack_recv_buffer<parallelDim>(halo_buffer, halo_size, field_hv, field_dv, on_device);
 
     wait_for_send(inner_counts_init, inner_req);
+
+    auto myrank = mpi::comm().rank();
+    dbg.clear();
+    dbg << "atlas::parallel::HaloExchange::execute after \n"
+        <<"inner_size=" << inner_size << " halo_size=" << halo_size
+        << " inner_counts[" << myrank << "] " << inner_counts[myrank]
+        << " inner_counts_init[" << myrank << "] " << inner_counts_init[myrank]
+        << " inner_displs[" << myrank << "] " << inner_displs[myrank] << "\n"
+        << " halo_counts[" << myrank << "] " << halo_counts[myrank]
+        << " halo_counts_init[" << myrank << "] " << halo_counts_init[myrank]
+        << " halo_displs[" << myrank << "] " << halo_displs[myrank];
+    //if (inner_size > 0) {
+    //  dbg << "\n inner_buffer ";
+    //  for (size_t iLoc = 0; iLoc < inner_size; ++iLoc) {
+    //    dbg << "\n   " << iLoc << ": " << inner_buffer[iLoc];
+    //  }
+    //}
+    //if (halo_size > 0) {
+    //  dbg << "\n halo_buffer ";
+    //  for (size_t iLoc = 0; iLoc < halo_size; ++iLoc) {
+    //    dbg << "\n   " << iLoc << ": " << halo_buffer[iLoc];
+    //  }
+    //}
+    dbg << std::endl;
+    ATLAS_DEBUG(dbg.str());
 
     deallocate_buffer<DATA_TYPE>(inner_buffer, on_device);
     deallocate_buffer<DATA_TYPE>(halo_buffer, on_device);

@@ -7,11 +7,13 @@
 
 #include <cmath>
 #include <iostream>
+#include <fstream>
 
 #include "atlas/interpolation/Vector2D.h"
 #include "atlas/interpolation/element/Quad2D.h"
 #include "atlas/interpolation/element/Triag2D.h"
 #include "atlas/runtime/Log.h"
+#include "atlas/parallel/mpi/mpi.h"
 
 namespace atlas {
 namespace interpolation {
@@ -56,6 +58,7 @@ method::Intersect Quad2D::localRemap(const Point2& p, double edgeEpsilon, double
 
     // Epsilon is compared against areas. Scale value accordingly.
     double areaEpsilon = epsilon * quadArea;
+    ATLAS_ASSERT(areaEpsilon>0);
 
     // work out if point is within the polygon
     if (!inQuadrilateral({p.x(), p.y()}, areaEpsilon)) {
@@ -89,18 +92,21 @@ method::Intersect Quad2D::localRemap(const Point2& p, double edgeEpsilon, double
 
                 // "Classic" solution to quadratic formula with no cancelation
                 // on numerator.
+                //ATLAS_ASSERT(2.*a>0);
                 weight = (-b - std::copysign(sqrtDiscriminant, b)) / (2. * a);
                 if (checkWeight(weight, edgeEpsilon)) {
                     return true;
                 }
 
                 // Use Vieta's formula x1 * x2 = c / a;
+                //ATLAS_ASSERT(weight*a>0);
                 weight = c / (a * weight);
                 return checkWeight(weight, edgeEpsilon);
             }
         }
         else if (std::abs(b) >= areaEpsilon) {
             // Linear case bx + c = 0.
+            // ATLAS_ASSERT(b>0);
             weight = -c / b;
             return checkWeight(weight, edgeEpsilon);
         }
@@ -139,6 +145,21 @@ method::Intersect Quad2D::localRemap(const Point2& p, double edgeEpsilon, double
         return isect.fail();
     }
 
+    std::cout << "writing to " << ("proc" + std::to_string(mpi::rank()) + ".txt") << std::endl;
+    std::cout << "ob in quadrilateral:" << std::endl;
+    std::cout << "ray: "  << p.x() << " " << p.y();
+    std::cout << " v00: " << v00.x() << " " << v00.y();
+    std::cout << " v10: " << v10.x() << " " << v10.y();
+    std::cout << " v11: " << v11.x() << " " << v11.y();
+    std::cout << " v01: " << v01.x() << " " << v01.y() << std::endl;
+    std::ofstream my_file("proc" + std::to_string(mpi::rank()) + ".txt", std::ofstream::app);
+    my_file << "ob in quadrilateral:" << std::endl;
+    my_file << "ray: "  << p.x() << " " << p.y();
+    my_file << " v00: " << v00.x() << " " << v00.y();
+    my_file << " v10: " << v10.x() << " " << v10.y();
+    my_file << " v11: " << v11.x() << " " << v11.y();
+    my_file << " v01: " << v01.x() << " " << v01.y() << std::endl;
+    my_file.close();
     return isect.success();
 }
 

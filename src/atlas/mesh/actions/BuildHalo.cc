@@ -1379,6 +1379,9 @@ void BuildHalo::operator()(int nb_elems) {
     int halo = 0;
     mesh_.metadata().get("halo", halo);
 
+    if (mpi::rank() == 0)
+      std::cout << "[" << mpi::rank() << "] mesh::actions::BuildHalo::operator() halo " << halo <<  std::endl;
+
     // Locked halos must be set at mesh generation.
     bool haloLocked = false;
     if (mesh_.metadata().get("halo_locked", haloLocked)) {

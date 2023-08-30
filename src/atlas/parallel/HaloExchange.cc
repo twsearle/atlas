@@ -97,16 +97,36 @@ void HaloExchange::setup(const std::string& mpi_comm, const int part[], const id
     atlas::vector<idx_t> ghost_points(parsize_);
     idx_t nghost = 0;
 
-    atlas_omp_parallel_for(int jj = halo_begin; jj < parsize_; ++jj) {
+    std::stringstream dbg;
+    //atlas_omp_parallel_for(int jj = halo_begin; jj < parsize_; ++jj) {
+    auto mypart = mpi::rank();
+    dbg << "atlas::parallel::HaloExchange::setup : base = " << base << " is_ghost";
+    for(int jj = halo_begin; jj < parsize_; ++jj) {
         if (is_ghost(jj)) {
             int p = part[jj];
-            atlas_omp_critical {
-                ++recvcounts_[p];
-                ghost_points[nghost] = jj;
-                nghost++;
-            }
+            //atlas_omp_critical {
+            ++recvcounts_[p];
+            ghost_points[nghost] = jj;
+            nghost++;
+            //}
+        }
+        // if (part[jj] != mypart) {
+        //   dbg << "\n" << jj << ": " << mypart << " != part[" << jj << "] " << part[jj];
+        // }
+        if (remote_idx[jj] != (base + jj)) {
+          dbg << "\n" << jj << ": remote_idx[" << jj << "] " << remote_idx[jj] << " != base " << base << " + " << jj;
+        } else {
+          dbg << "\n" << jj << ": remote_idx[" << jj << "] " << remote_idx[jj] << " == base " << base << " + " << jj;
         }
     }
+    dbg << std::endl;
+
+    dbg << "atlas::parallel::HaloExchange::setup : recvcounts_";
+    for (size_t p = 0; p < nproc; ++p) {
+      dbg << "\n recvcounts_[" << p << "] " << recvcounts_[p];
+    }
+    dbg << std::endl;
+    ATLAS_DEBUG(dbg.str());
 
     recvcnt_ = std::accumulate(recvcounts_.begin(), recvcounts_.end(), 0);
 
@@ -116,6 +136,14 @@ void HaloExchange::setup(const std::string& mpi_comm, const int part[], const id
     ATLAS_TRACE_MPI(ALLTOALL) { comm().allToAll(recvcounts_, sendcounts_); }
 
     sendcnt_ = std::accumulate(sendcounts_.begin(), sendcounts_.end(), 0);
+
+    dbg.clear();
+    dbg << "atlas::parallel::HaloExchange::setup : sendcounts_";
+    for (size_t p = 0; p < nproc; ++p) {
+      dbg << "\n sendcounts_[" << p << "] " << sendcounts_[p];
+    }
+    dbg << std::endl;
+    ATLAS_DEBUG(dbg.str());
 
     recvdispls_[0] = 0;
     senddispls_[0] = 0;

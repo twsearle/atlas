@@ -207,16 +207,23 @@ NodeColumns::NodeColumns(Mesh mesh, const eckit::Configuration& config):
     else {
         halo_ = mesh::Halo(mesh);
     }
-    mesh::actions::build_nodes_parallel_fields(mesh_);
+    const auto remote_idxs = array::make_indexview<idx_t, 1>(nodes_.remote_index());
+    mesh::actions::build_nodes_parallel_fields(mesh_.nodes());
     mesh::actions::build_periodic_boundaries(mesh_);
 
+      if (mpi::rank() == 0)
+        std::cout << mpi::rank() << " NodeColumns::NodeColumns halo_.size() "  <<  halo_.size() << std::endl;
     if (halo_.size() > 0) {
+        if (mpi::rank() == 0)
+          std::cout << mpi::rank() << " NodeColumns::NodeColumns halo_.size() > 0 "  << std::endl;
         mesh::actions::build_halo(mesh_, halo_.size());
         std::stringstream ss;
         ss << "nb_nodes_including_halo[" << halo_.size() << "]";
         mesh_.metadata().get(ss.str(), nb_nodes_);
     }
     if (!nb_nodes_) {
+        if (mpi::rank() == 0)
+          std::cout << mpi::rank() << " NodeColumns::NodeColumns !nb_nodes_ "  << std::endl;
         std::stringstream ss;
         ss << "nb_nodes_including_halo[" << halo_.size() << "]";
         if (!mesh_.metadata().get(ss.str(), nb_nodes_)) {

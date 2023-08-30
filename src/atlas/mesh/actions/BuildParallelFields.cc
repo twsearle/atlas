@@ -108,6 +108,10 @@ void build_nodes_parallel_fields(mesh::Nodes& nodes) {
     ATLAS_TRACE();
     bool parallel = false;
     nodes.metadata().get("parallel", parallel);
+    if (mpi::rank() == 0) {
+        std::cout << mpi::rank() << " mesh::actions::build_nodes_parallel_fields nodes.metadata() " << nodes.metadata() << std::endl;
+        std::cout << mpi::rank() << " mesh::actions::build_nodes_parallel_fields parallel = " << parallel  << std::endl;
+    }
     if (!parallel) {
         build_nodes_partition(nodes);
         build_nodes_remote_idx(nodes);

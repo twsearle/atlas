@@ -8,6 +8,7 @@
 #include <cmath>
 #include <iomanip>
 #include <limits>
+#include <fstream>
 
 #include "UnstructuredBilinearLonLat.h"
 
@@ -15,6 +16,7 @@
 #include "eckit/log/ProgressTimer.h"
 #include "eckit/log/Seconds.h"
 
+#include "atlas/array/ArrayView.h"
 #include "atlas/functionspace/NodeColumns.h"
 #include "atlas/functionspace/PointCloud.h"
 #include "atlas/grid.h"
@@ -324,6 +326,10 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
         o_lon += 360.0;
     }
     PointLonLat o_loc{o_lon, (*olonlat_)(ip, LAT)};  // lookup point
+    std::cout << "lookup point: " << o_loc.lon() << " " << o_loc.lat() << std::endl;
+
+    const functionspace::NodeColumns src = source_;
+    auto partitions = array::make_view<int, 1>(src.mesh().cells().partition());
 
     auto inv_dist_weight_quad = [](element::Quad2D& q, const PointXY& loc, std::array<double, 4>& w) {
         double d[4];
@@ -336,6 +342,7 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
         w[2] = d[1] * d[0] * d[3];
         w[3] = d[1] * d[0] * d[2];
 
+        ATLAS_ASSERT((w[0] + w[1] + w[2] + w[3]) > 0);
         double suminv = 1. / (w[0] + w[1] + w[2] + w[3]);
         for (size_t i = 0; i < 4; ++i) {
             w[i] *= suminv;
@@ -351,6 +358,7 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
         w[2] = d[1] * d[0];
         w[3] = 0.;
 
+        ATLAS_ASSERT((w[0] + w[1] + w[2]) > 0);
         double suminv = 1. / (w[0] + w[1] + w[2]);
         for (size_t i = 0; i < 3; ++i) {
             w[i] *= suminv;
@@ -361,6 +369,11 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
     for (ElemIndex3::NodeList::const_iterator itc = elems.begin(); itc != elems.end(); ++itc) {
         const idx_t elem_id = idx_t((*itc).value().payload());
         ATLAS_ASSERT(elem_id < connectivity_->rows());
+
+        std::ofstream my_file("proc" + std::to_string(mpi::rank()) + ".txt", std::ofstream::app);
+        my_file << "o_loc" << " lon: " << o_loc.lon() << " lat: " << o_loc.lat();
+        my_file << " partitions(" << elem_id << ") " << partitions(elem_id) << std::endl;
+        my_file.close();
 
         const idx_t nb_cols = connectivity_->cols(elem_id);
         ATLAS_ASSERT(nb_cols == 3 || nb_cols == 4);
@@ -479,6 +492,17 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
     if (!triplets.empty()) {
         normalise(triplets);
     }
+    std::ofstream my_file("proc" + std::to_string(mpi::rank()) + ".txt", std::ofstream::app);
+    for (size_t i = 0; i < 4; ++i) {
+        // (ip, idx[i], w[i])
+        const auto srcMeshIndex = triplets[i].row();
+        const auto tgtMeshIndex = triplets[i].col();
+        const auto weight       = triplets[i].value();
+        my_file << "srcMeshIndex "  << srcMeshIndex
+                << " tgtMeshIndex " << tgtMeshIndex
+                << " weight "       << weight << std::endl;
+    }
+    my_file.close();
     return triplets;
 }
 

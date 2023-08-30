@@ -9,6 +9,7 @@
  */
 
 #include <memory>
+#include <fstream>
 
 #include "atlas/interpolation/method/Method.h"
 
@@ -23,6 +24,7 @@
 #include "atlas/runtime/Exception.h"
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
+#include "atlas/parallel/mpi/mpi.h"
 
 using namespace atlas::linalg;
 namespace atlas {
@@ -148,6 +150,19 @@ void Method::interpolate_field_rank2(const Field& src, Field& tgt, const Matrix&
                 tgt_v(i, lev) = tgt_slice_v(i);
             }
         }
+        const auto outer = W.outer();
+        const auto inner = W.inner();
+        const auto weight = W.data();
+        std::ofstream my_file("proc" + std::to_string(mpi::rank()) + ".txt", std::ofstream::app);
+        for (idx_t r = 0; r < W.rows(); ++r) {
+            for (idx_t c = outer[r]; c < outer[r + 1]; ++c) {
+                idx_t n = inner[c];
+                Value w = static_cast<Value>(weight[c]);
+                my_file << " src_v(" << n << ", 0) = "  << src_v(n, 0) << " weight " << w << std::endl;
+            }
+            my_file << " tgt_v(" << r << ", 0) = "  << tgt_v(r, 0) << std::endl;
+        }
+        my_file.close();
     }
     else {
         sparse_matrix_multiply(W, src_v, tgt_v, sparse::backend::openmp());
