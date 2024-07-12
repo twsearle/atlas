@@ -136,14 +136,20 @@ void Method::interpolate_field_rank2(const Field& src, Field& tgt, const Matrix&
         auto src_slice_v = array::make_view<Value, 1>(src_slice);
         auto tgt_slice_v = array::make_view<Value, 1>(tgt_slice);
 
+        std::ofstream my_file("proc" + std::to_string(mpi::rank()) + ".txt", std::ofstream::app);
         for (idx_t lev = 0; lev < src_v.shape(1); ++lev) {
             // Copy this level to temporary rank-1 field
             for (idx_t i = 0; i < src.shape(0); ++i) {
                 src_slice_v(i) = src_v(i, lev);
+                my_file << "before interp src_slice_v(" << i << ") = "  << src_slice_v(i) << std::endl;
             }
 
             // Interpolate between rank-1 fields
             interpolate_field_rank1<Value>(src_slice, tgt_slice, W);
+
+            for (idx_t i = 0; i < src.shape(0); ++i) {
+                my_file << "after interp src_slice_v(" << i << ") = "  << src_slice_v(i) << std::endl;
+            }
 
             // Copy rank-1 field to this level in the rank-2 field
             for (idx_t i = 0; i < tgt.shape(0); ++i) {
@@ -153,7 +159,6 @@ void Method::interpolate_field_rank2(const Field& src, Field& tgt, const Matrix&
         const auto outer = W.outer();
         const auto inner = W.inner();
         const auto weight = W.data();
-        std::ofstream my_file("proc" + std::to_string(mpi::rank()) + ".txt", std::ofstream::app);
         for (idx_t r = 0; r < W.rows(); ++r) {
             for (idx_t c = outer[r]; c < outer[r + 1]; ++c) {
                 idx_t n = inner[c];

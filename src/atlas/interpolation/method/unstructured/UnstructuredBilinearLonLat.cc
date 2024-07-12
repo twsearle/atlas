@@ -328,6 +328,8 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
     PointLonLat o_loc{o_lon, (*olonlat_)(ip, LAT)};  // lookup point
     std::cout << "lookup point: " << o_loc.lon() << " " << o_loc.lat() << std::endl;
 
+    std::ostringstream quads_checked;
+
     const functionspace::NodeColumns src = source_;
     auto partitions = array::make_view<int, 1>(src.mesh().cells().partition());
 
@@ -446,6 +448,8 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
                 PointLonLat{lons[0], (*ilonlat_)(idx[0], LAT)}, PointLonLat{lons[1], (*ilonlat_)(idx[1], LAT)},
                 PointLonLat{lons[2], (*ilonlat_)(idx[2], LAT)}, PointLonLat{lons[3], (*ilonlat_)(idx[3], LAT)});
 
+            quads_checked << quad << std::endl;
+
             ATLAS_ASSERT( quad.validate() );
 
             if (itc == elems.begin()) {
@@ -498,6 +502,7 @@ Method::Triplets UnstructuredBilinearLonLat::projectPointToElements(size_t ip, c
         const auto srcMeshIndex = triplets[i].row();
         const auto tgtMeshIndex = triplets[i].col();
         const auto weight       = triplets[i].value();
+        my_file << quads_checked.str() << std::endl;
         my_file << "srcMeshIndex "  << srcMeshIndex
                 << " tgtMeshIndex " << tgtMeshIndex
                 << " weight "       << weight << std::endl;

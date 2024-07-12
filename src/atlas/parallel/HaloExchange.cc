@@ -113,11 +113,11 @@ void HaloExchange::setup(const std::string& mpi_comm, const int part[], const id
         // if (part[jj] != mypart) {
         //   dbg << "\n" << jj << ": " << mypart << " != part[" << jj << "] " << part[jj];
         // }
-        if (remote_idx[jj] != (base + jj)) {
-          dbg << "\n" << jj << ": remote_idx[" << jj << "] " << remote_idx[jj] << " != base " << base << " + " << jj;
-        } else {
-          dbg << "\n" << jj << ": remote_idx[" << jj << "] " << remote_idx[jj] << " == base " << base << " + " << jj;
-        }
+        //if (remote_idx[jj] != (base + jj)) {
+        //  dbg << "\n" << jj << ": remote_idx[" << jj << "] " << remote_idx[jj] << " != base " << base << " + " << jj;
+        //} else {
+        //  dbg << "\n" << jj << ": remote_idx[" << jj << "] " << remote_idx[jj] << " == base " << base << " + " << jj;
+        //}
     }
     dbg << std::endl;
 
