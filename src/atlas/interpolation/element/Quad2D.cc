@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 
 #include "atlas/interpolation/Vector2D.h"
@@ -145,20 +146,21 @@ method::Intersect Quad2D::localRemap(const Point2& p, double edgeEpsilon, double
         return isect.fail();
     }
 
+    
     std::cout << "writing to " << ("proc" + std::to_string(mpi::rank()) + ".txt") << std::endl;
     std::cout << "ob in quadrilateral:" << std::endl;
-    std::cout << "ray: "  << p.x() << " " << p.y();
-    std::cout << " v00: " << v00.x() << " " << v00.y();
-    std::cout << " v10: " << v10.x() << " " << v10.y();
-    std::cout << " v11: " << v11.x() << " " << v11.y();
-    std::cout << " v01: " << v01.x() << " " << v01.y() << std::endl;
+    std::cout << "ray: " << std::setprecision(17) << p.x() << " "<< std::setprecision(17) << p.y();
+    std::cout << " v00: " << std::setprecision(17) << v00.x() << " " << std::setprecision(17) << v00.y();
+    std::cout << " v10: " << std::setprecision(17) << v10.x() << " " << std::setprecision(17) << v10.y();
+    std::cout << " v11: " << std::setprecision(17) << v11.x() << " " << std::setprecision(17) << v11.y();
+    std::cout << " v01: " << std::setprecision(17) << v01.x() << " " << std::setprecision(17) << v01.y() << std::endl;
     std::ofstream my_file("proc" + std::to_string(mpi::rank()) + ".txt", std::ofstream::app);
     my_file << "ob in quadrilateral:" << std::endl;
-    my_file << "ray: "  << p.x() << " " << p.y();
-    my_file << " v00: " << v00.x() << " " << v00.y();
-    my_file << " v10: " << v10.x() << " " << v10.y();
-    my_file << " v11: " << v11.x() << " " << v11.y();
-    my_file << " v01: " << v01.x() << " " << v01.y() << std::endl;
+    my_file << "ray: " << std::setprecision(17) << p.x() << " "<< std::setprecision(17) << p.y();
+    my_file << " v00: " << std::setprecision(17) << v00.x() << " " << std::setprecision(17) << v00.y();
+    my_file << " v10: " << std::setprecision(17) << v10.x() << " " << std::setprecision(17) << v10.y();
+    my_file << " v11: " << std::setprecision(17) << v11.x() << " " << std::setprecision(17) << v11.y();
+    my_file << " v01: " << std::setprecision(17) << v01.x() << " " << std::setprecision(17) << v01.y() << std::endl;
     my_file.close();
     return isect.success();
 }
